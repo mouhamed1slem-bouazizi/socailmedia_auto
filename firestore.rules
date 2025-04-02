@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if true;  // Temporarily allow all access for testing
+      // Later we can restrict it to:
+      // allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /profile-pictures/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
