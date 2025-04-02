@@ -1,0 +1,12 @@
+.
+├── src
+│   ├── app
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── globals.css
+│   └── components
+├── public
+├── package.json
+├── tsconfig.json
+├── next.config.js
+└── tailwind.config.ts
