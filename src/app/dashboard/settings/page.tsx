@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/core/Button';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState('');
   const [twitterAccount, setTwitterAccount] = useState({
     username: '',
     profileImage: '',
@@ -19,32 +21,78 @@ export default function SettingsPage() {
     refreshToken: ''
   });
 
+  const verifyTwitterConnection = async (twitterData: any) => {
+    if (!twitterData) return false;
+    
+    return (
+      twitterData.accessToken &&
+      twitterData.refreshToken &&
+      twitterData.connectedAt &&
+      new Date(twitterData.connectedAt).getTime() > 0
+    );
+  };
+
+  const fetchTwitterAccount = async () => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user!.uid));
+      const data = userDoc.data();
+      
+      if (data?.twitterAccount) {
+        const isValid = await verifyTwitterConnection(data.twitterAccount);
+        
+        if (isValid) {
+          setTwitterAccount({
+            username: data.twitterAccount.username || '',
+            profileImage: data.twitterAccount.profileImage || '',
+            accessToken: data.twitterAccount.accessToken || '',
+            refreshToken: data.twitterAccount.refreshToken || ''
+          });
+          setIsConnected(true);
+          return;
+        }
+      }
+      
+      setIsConnected(false);
+      setTwitterAccount({
+        username: '',
+        profileImage: '',
+        accessToken: '',
+        refreshToken: ''
+      });
+    } catch (error) {
+      console.error('Error fetching Twitter account:', error);
+      setIsConnected(false);
+    }
+  };
+
+  // Add this useEffect to refetch when the component mounts and after connection
   useEffect(() => {
     if (user) {
       fetchTwitterAccount();
     }
   }, [user]);
 
-  const fetchTwitterAccount = async () => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', user!.uid));
-      const data = userDoc.data();
-      if (data?.twitterAccount) {
-        setTwitterAccount(data.twitterAccount);
-        setIsConnected(true);
+  // Update handleTwitterConnect to refetch after redirect
+  useEffect(() => {
+    const checkTwitterConnection = async () => {
+      if (window.location.search.includes('oauth_token')) {
+        await fetchTwitterAccount();
       }
-    } catch (error) {
-      console.error('Error fetching Twitter account:', error);
-    }
-  };
+    };
+    
+    checkTwitterConnection();
+  }, []);
 
   const handleTwitterConnect = async () => {
     try {
+      setLoading(true);
+      setError(''); // Clear any previous errors
+      
       const response = await fetch('/api/auth/twitter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user.uid
+          'x-user-id': user!.uid
         }
       });
   
@@ -56,27 +104,65 @@ export default function SettingsPage() {
       window.location.href = data.url;
     } catch (error) {
       console.error('Error connecting Twitter:', error);
-      // Handle error appropriately
+      setError('Failed to connect to Twitter. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
+      setError(''); // Clear any previous errors
       await signOut();
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
+      setError('Failed to logout. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
+  const handleDisconnectTwitter = async () => {
+    try {
+      setLoading(true);
+      await updateDoc(doc(db, 'users', user!.uid), {
+        twitterAccount: {
+          accessToken: '',
+          refreshToken: '',
+          connectedAt: '',
+          profileImage: '',
+          username: ''
+        }
+      });
+      setIsConnected(false);
+      setTwitterAccount({
+        username: '',
+        profileImage: '',
+        accessToken: '',
+        refreshToken: ''
+      });
+    } catch (error) {
+      console.error('Error disconnecting Twitter:', error);
+      setError('Failed to disconnect Twitter account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update the return JSX to show error message
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
       
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         <h2 className="text-xl font-semibold mb-6">Twitter Integration</h2>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md">
+            {error}
+          </div>
+        )}
         {isConnected ? (
           <div className="space-y-4">
             <div className="flex items-center space-x-4">
@@ -93,11 +179,12 @@ export default function SettingsPage() {
               </div>
             </div>
             <Button
-              onClick={() => setIsConnected(false)}
+              onClick={handleDisconnectTwitter}
               variant="outline"
               className="mt-4"
+              disabled={loading}
             >
-              Disconnect Account
+              {loading ? 'Disconnecting...' : 'Disconnect Account'}
             </Button>
           </div>
         ) : (

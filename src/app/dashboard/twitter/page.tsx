@@ -20,6 +20,9 @@ export default function TwitterPage() {
   const [loading, setLoading] = useState(true);
   const [twitterAccount, setTwitterAccount] = useState<TwitterAccount | null>(null);
   const [newTweet, setNewTweet] = useState('');
+  // Replace imageUrl state with file states
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [posting, setPosting] = useState(false);
 
   useEffect(() => {
@@ -73,32 +76,41 @@ export default function TwitterPage() {
     setLoading(false);
   };
 
-  const postTweet = async (text: string) => {
+  const postTweet = async (text: string, image?: File) => {
     if (!user) throw new Error('User not authenticated');
     
     try {
+      const formData = new FormData();
+      formData.append('text', text);
+      formData.append('userId', user.uid);
+      
+      // Add image to formData if provided
+      if (image) {
+        console.log('Attaching image to tweet:', image.name);
+        formData.append('image', image);
+      }
+
+      console.log('Sending tweet request with text:', text);
+      
       const response = await fetch('/api/twitter/tweet', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.uid,
-          'Authorization': `Bearer ${twitterAccount?.accessToken}`
-        },
-        body: JSON.stringify({ text })
+        body: formData
       });
       
       const responseData = await response.json();
       
       if (!response.ok) {
+        console.error('Twitter API error response:', responseData);
+        
         if (response.status === 401) {
-          throw new Error('Twitter authentication expired. Please reconnect your account in settings.');
+          throw new Error('Twitter authentication failed. Please reconnect your account in settings.');
         }
         
         if (response.status === 403 && responseData.detail?.includes('duplicate content')) {
           throw new Error('Cannot post duplicate tweet. Please modify your content.');
         }
         
-        throw new Error(responseData.detail || responseData.error || `Failed to post tweet (${response.status})`);
+        throw new Error(responseData.error || responseData.detail || `Failed to post tweet (${response.status})`);
       }
       
       return responseData;
@@ -113,31 +125,62 @@ export default function TwitterPage() {
     
     setPosting(true);
     try {
-      const result = await postTweet(newTweet);
-      console.log('Post result:', result); // Debug log
+      // Pass the image file if it exists
+      const result = await postTweet(newTweet, imageFile);
+      console.log('Post result from Twitter API:', result);
       
       // Get existing tweets or initialize empty array
       const userDoc = await getDoc(doc(db, 'users', user!.uid));
       const existingTweets = userDoc.data()?.twitterAccount?.tweets || [];
   
-      // Save to Firebase with safe access to ID
+      // Save to Firebase with flexible ID extraction to handle different API response formats
       const userRef = doc(db, 'users', user!.uid);
+      const tweetId = result?.data?.id || result?.id_str || result?.id || 'unknown';
+      
       await updateDoc(userRef, {
         'twitterAccount.tweets': [{
           content: newTweet,
           createdAt: new Date().toISOString(),
           status: 'posted',
-          tweetId: result?.id || result?.data?.id || 'unknown' // Handle different response structures
+          tweetId: tweetId,
+          hasImage: !!imageFile
         }, ...existingTweets]
       });
       
+      setImageFile(null);
+      setImagePreview('');
       setNewTweet('');
       alert('Tweet posted successfully!');
     } catch (error: any) {
       console.error('Error posting tweet:', error);
-      alert(error.message || 'Failed to post tweet. Please try again.');
+      
+      // Provide more specific error messages based on the error
+      let errorMessage = 'Failed to post tweet. Please try again.';
+      
+      if (error.message?.includes('access level')) {
+        errorMessage = 'Your Twitter API access level does not allow posting tweets. Please upgrade your Twitter developer account.';
+      } else if (error.message?.includes('authentication')) {
+        errorMessage = 'Twitter authentication failed. Please reconnect your account in settings.';
+      } else if (error.message?.includes('duplicate content')) {
+        errorMessage = 'Cannot post duplicate tweet. Please modify your content.';
+      } else if (error.message?.includes('Failed to upload image')) {
+        errorMessage = 'Failed to upload image. Please try a different image or post without an image.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     }
     setPosting(false);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+    }
   };
 
   if (loading) {
@@ -167,8 +210,42 @@ export default function TwitterPage() {
                 onChange={(e) => setNewTweet(e.target.value)}
                 maxLength={280}
                 placeholder="What's happening?"
-                multiline="true" // Change this line from multiline to multiline="true"
+                multiline="true"
               />
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="inline-block px-4 py-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200"
+                >
+                  Choose Image
+                </label>
+                {imagePreview && (
+                  <div className="relative w-full max-w-xs">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="rounded-lg max-h-48 object-cover"
+                    />
+                    <button
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview('');
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      type="button"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">
                   {newTweet.length}/280 characters
