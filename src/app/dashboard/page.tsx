@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/core/Button';
 import Link from 'next/link';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  // Remove the unused user variable
+  const { } = useAuth();
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

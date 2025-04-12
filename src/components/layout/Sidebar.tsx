@@ -19,7 +19,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     { name: 'Profile', icon: UserIcon, path: '/dashboard/profile' },
     { name: 'Messages', icon: ChatBubbleLeftIcon, path: '/dashboard/messages' },
     { name: 'Friends', icon: UsersIcon, path: '/dashboard/friends' },
-    { name: 'X Twitter', icon: HomeIcon, path: '/dashboard/twitter' }, // Add this line
+    { name: 'Social Media', icon: HomeIcon, path: '/dashboard/social-media' }, // Add this line
     { name: 'Settings', icon: CogIcon, path: '/dashboard/settings' },
   ];
 

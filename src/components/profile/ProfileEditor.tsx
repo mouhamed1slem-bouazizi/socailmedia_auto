@@ -57,7 +57,7 @@ export function ProfileEditor() {
       // Get the download URL
       const downloadURL = await getDownloadURL(storageRef);
       return downloadURL;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error uploading image:', error);
       throw new Error('Failed to upload image');
     }
@@ -75,7 +75,7 @@ export function ProfileEditor() {
         if (selectedImage) {
           try {
             photoURL = await uploadImage(selectedImage);
-          } catch (error) {
+          } catch {
             setMessage({ type: 'error', text: 'Failed to upload image. Profile update cancelled.' });
             setLoading(false);
             return;

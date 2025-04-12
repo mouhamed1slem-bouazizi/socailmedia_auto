@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/core/Input';
 import { Button } from '@/components/ui/core/Button';
-import { useAuth } from '@/contexts/AuthContext';
+// Remove the unused import
+// import { useAuth } from '@/contexts/AuthContext';
 
 export function SignupForm() {
   const router = useRouter();
