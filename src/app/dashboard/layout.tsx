@@ -1,4 +1,5 @@
-import { Sidebar } from '@/components/layout/Sidebar';
+// Remove the unused import
+// import { Sidebar } from '@/components/layout/Sidebar';
 
 export default function DashboardLayout({
   children,

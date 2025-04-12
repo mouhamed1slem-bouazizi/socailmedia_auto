@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function SignupForm() {
   const router = useRouter();
-  const { signup } = useAuth();
+  const { signUp } = useAuth(); // Destructure the signUp method
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,7 +27,7 @@ export function SignupForm() {
     try {
       setError('');
       setLoading(true);
-      await signup(formData.email, formData.password);
+      await signUp(formData.email, formData.password);
       router.push('/dashboard');
     } catch (err) {
       setError('Failed to create an account');

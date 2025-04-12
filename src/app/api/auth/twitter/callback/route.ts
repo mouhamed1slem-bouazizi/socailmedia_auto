@@ -150,8 +150,10 @@ export async function GET(request: Request) {
     } catch (firestoreError) {
       console.error('Firestore operation failed:', {
         error: firestoreError,
-        code: firestoreError.code,
-        message: firestoreError.message,
+        code: firestoreError instanceof Error ? 
+          // Fix: Convert to unknown first, then to Record<string, unknown>
+          (firestoreError as unknown as Record<string, unknown>).code : 'unknown',
+        message: firestoreError instanceof Error ? firestoreError.message : String(firestoreError),
         path: `users/${state}`,
         timestamp: new Date().toISOString()
       });

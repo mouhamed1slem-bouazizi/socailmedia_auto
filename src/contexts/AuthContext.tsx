@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { 
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User
@@ -13,6 +14,7 @@ interface AuthContextType {
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +34,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(result.user);
   };
 
+  const signUp = async (email: string, password: string) => {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    setUser(result.user);
+  };
+
   const signOut = async () => {
     await firebaseSignOut(auth);
     setUser(null);
@@ -40,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     signIn,
+    signUp,
     signOut
   };
 
