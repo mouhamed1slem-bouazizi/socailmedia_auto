@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/core/Button';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-<<<<<<< Updated upstream
-=======
 import Image from 'next/image';
 
 // Define interfaces for better type safety
@@ -41,16 +39,14 @@ interface UserData {
   instagramAccount?: InstagramAccountData;
   [key: string]: unknown;
 }
->>>>>>> Stashed changes
+
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  
+  // State variables
   const [loading, setLoading] = useState(false);
-<<<<<<< Updated upstream
-  const [isConnected, setIsConnected] = useState(false);
-  const [twitterAccount, setTwitterAccount] = useState({
-=======
   const [isLoading, setIsLoading] = useState(false);
   const [twitterLoading, setTwitterLoading] = useState(false);
   const [linkedinLoading, setLinkedinLoading] = useState(false);
@@ -61,22 +57,12 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [twitterAccount, setTwitterAccount] = useState<TwitterAccountData>({
->>>>>>> Stashed changes
     username: '',
     profileImage: '',
     accessToken: '',
     refreshToken: ''
   });
-  // Remove or use linkedinAccount
-  // const [linkedinAccount, setLinkedinAccount] = useState<LinkedInAccountData>({
-  //   username: '',
-  //   profileImage: '',
-  //   accessToken: '',
-  //   refreshToken: ''
-  // });
 
-<<<<<<< Updated upstream
-=======
   // Add a useEffect to fetch user data when the component mounts
   useEffect(() => {
     const fetchUserData = async () => {
@@ -98,7 +84,7 @@ export default function SettingsPage() {
     fetchUserData();
   }, [user]);
 
-  // Fix any type
+  // Twitter connection verification
   const verifyTwitterConnection = useCallback(async (twitterData: TwitterAccountData) => {
     if (!twitterData) return false;
     
@@ -110,6 +96,7 @@ export default function SettingsPage() {
     );
   }, []);
 
+  // Fetch Twitter account data
   const fetchTwitterAccount = useCallback(async () => {
     try {
       if (!user) return;
@@ -145,7 +132,7 @@ export default function SettingsPage() {
     }
   }, [user, verifyTwitterConnection]);
 
-  // Fix any type
+  // LinkedIn connection verification
   const verifyLinkedInConnection = useCallback(async (linkedinData: LinkedInAccountData) => {
     if (!linkedinData) return false;
     
@@ -157,6 +144,7 @@ export default function SettingsPage() {
     );
   }, []);
 
+  // Fetch LinkedIn account data
   const fetchLinkedInAccount = useCallback(async () => {
     try {
       if (!user) return;
@@ -168,38 +156,17 @@ export default function SettingsPage() {
         const isValid = await verifyLinkedInConnection(data.linkedinAccount);
         
         if (isValid) {
-          // Remove these lines since we're not using linkedinAccount
-          // setLinkedinAccount({
-          //   username: data.linkedinAccount.username || '',
-          //   profileImage: data.linkedinAccount.profileImage || '',
-          //   accessToken: data.linkedinAccount.accessToken || '',
-          //   refreshToken: data.linkedinAccount.refreshToken || ''
-          // });
-          // setIsLinkedInConnected(true);
-          
-          // Instead, update userData directly if needed
+          // Update userData directly
           setUserData(data);
           return;
         }
       }
-      
-      // Remove these lines
-      // setIsLinkedInConnected(false);
-      // setLinkedinAccount({
-      //   username: '',
-      //   profileImage: '',
-      //   accessToken: '',
-      //   refreshToken: ''
-      // });
     } catch (error) {
       console.error('Error fetching LinkedIn account:', error);
-      // Remove this line
-      // setIsLinkedInConnected(false);
     }
   }, [user, verifyLinkedInConnection]);
 
-  // Fix missing dependencies
->>>>>>> Stashed changes
+  // Fetch accounts on component mount
   useEffect(() => {
     if (user) {
       fetchTwitterAccount();
@@ -207,24 +174,7 @@ export default function SettingsPage() {
     }
   }, [user, fetchTwitterAccount, fetchLinkedInAccount]);
 
-<<<<<<< Updated upstream
-  const fetchTwitterAccount = async () => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', user!.uid));
-      const data = userDoc.data();
-      if (data?.twitterAccount) {
-        setTwitterAccount(data.twitterAccount);
-        setIsConnected(true);
-      }
-    } catch (error) {
-      console.error('Error fetching Twitter account:', error);
-    }
-  };
-
-  const handleTwitterConnect = async () => {
-    try {
-=======
-  // Fix missing dependency
+  // Check for Twitter OAuth callback
   useEffect(() => {
     const checkTwitterConnection = async () => {
       if (window.location.search.includes('oauth_token')) {
@@ -235,7 +185,7 @@ export default function SettingsPage() {
     checkTwitterConnection();
   }, [fetchTwitterAccount]);
 
-  // Fix any type
+  // Check for LinkedIn OAuth callback
   useEffect(() => {
     const checkLinkedInConnection = async () => {
       if (window.location.search.includes('code') && window.location.search.includes('state')) {
@@ -286,17 +236,26 @@ export default function SettingsPage() {
     }
   }, [user, fetchLinkedInAccount]);
 
+  // Check Instagram connection status
+  useEffect(() => {
+    if (userData?.instagramAccount?.accessToken) {
+      setIsInstagramConnected(true);
+    } else {
+      setIsInstagramConnected(false);
+    }
+  }, [userData]);
+
+  // Handler functions
   const handleTwitterConnect = async () => {
     try {
       setTwitterLoading(true);
-      setError(''); // Clear any previous errors
+      setError('');
       
->>>>>>> Stashed changes
       const response = await fetch('/api/auth/twitter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user.uid
+          'x-user-id': user!.uid
         }
       });
   
@@ -308,40 +267,26 @@ export default function SettingsPage() {
       window.location.href = data.url;
     } catch (error) {
       console.error('Error connecting Twitter:', error);
-<<<<<<< Updated upstream
-      // Handle error appropriately
-=======
       setError('Failed to connect to Twitter. Please try again.');
     } finally {
       setTwitterLoading(false);
->>>>>>> Stashed changes
     }
   };
 
   const handleLogout = async () => {
-    setLoading(true);
     try {
-<<<<<<< Updated upstream
-=======
       setLogoutLoading(true);
-      setError(''); // Clear any previous errors
->>>>>>> Stashed changes
+      setError('');
       await signOut();
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
-<<<<<<< Updated upstream
-=======
       setError('Failed to logout. Please try again.');
     } finally {
       setLogoutLoading(false);
->>>>>>> Stashed changes
     }
-    setLoading(false);
   };
 
-<<<<<<< Updated upstream
-=======
   const handleDisconnectTwitter = async () => {
     try {
       setTwitterLoading(true);
@@ -372,7 +317,7 @@ export default function SettingsPage() {
   const handleLinkedInConnect = async () => {
     try {
       setLinkedinLoading(true);
-      setError(''); // Clear any previous errors
+      setError('');
       
       const response = await fetch('/api/auth/linkedin', {
         method: 'POST',
@@ -400,7 +345,6 @@ export default function SettingsPage() {
     try {
       setLinkedinLoading(true);
       
-      // Add null check for user
       if (!user) {
         throw new Error('User not authenticated');
       }
@@ -419,7 +363,6 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Failed to disconnect LinkedIn account');
       }
       
-      // Update local state with proper type for prev parameter
       setUserData((prev) => {
         if (!prev) return null;
         const newData = { ...prev };
@@ -429,31 +372,20 @@ export default function SettingsPage() {
         return newData;
       });
       
-      // Replace toast with setError for success message
       setError('LinkedIn account disconnected successfully');
       
     } catch (error) {
       console.error('Error disconnecting LinkedIn account:', error);
-      // Replace toast with setError for error message
       setError('Failed to disconnect LinkedIn account');
     } finally {
       setLinkedinLoading(false);
     }
   };
 
-  // Add this effect to check Instagram connection status
-  useEffect(() => {
-    if (userData?.instagramAccount?.accessToken) {
-      setIsInstagramConnected(true);
-    } else {
-      setIsInstagramConnected(false);
-    }
-  }, [userData]);
-
   const handleInstagramConnect = async () => {
     try {
       setInstagramLoading(true);
-      setError(''); // Clear any previous errors
+      setError('');
       
       console.log('Initializing Instagram connection...');
       
@@ -517,8 +449,6 @@ export default function SettingsPage() {
     }
   };
 
-  // Update the return JSX to include LinkedIn and replace img with Image
->>>>>>> Stashed changes
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
@@ -531,11 +461,7 @@ export default function SettingsPage() {
       
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         <h2 className="text-xl font-semibold mb-6">Twitter Integration</h2>
-<<<<<<< Updated upstream
-        {isConnected ? (
-=======
         {isTwitterConnected ? (
->>>>>>> Stashed changes
           <div className="space-y-4">
             <div className="flex items-center space-x-4">
               {twitterAccount.profileImage && (
@@ -555,17 +481,12 @@ export default function SettingsPage() {
               </div>
             </div>
             <Button
-              onClick={() => setIsConnected(false)}
+              onClick={handleDisconnectTwitter}
               variant="outline"
               className="mt-4"
-<<<<<<< Updated upstream
-            >
-              Disconnect Account
-=======
               disabled={twitterLoading}
             >
               {twitterLoading ? 'Disconnecting...' : 'Disconnect Account'}
->>>>>>> Stashed changes
             </Button>
           </div>
         ) : (

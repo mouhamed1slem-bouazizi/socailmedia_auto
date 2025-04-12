@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import crypto from 'crypto';
 
-<<<<<<< Updated upstream
-export async function POST(request: Request) {
-  try {
-    const { text } = await request.json();
-    const userId = request.headers.get('x-user-id');
-=======
 // OAuth helper functions
 function encodeRFC3986URIComponent(str: string) {
   return encodeURIComponent(str).replace(/[!'()*]/g, (c) => 
@@ -90,17 +85,11 @@ export async function POST(req: Request) {
     const userId = formData.get('userId') as string;
     const media = formData.get('media') as File | null;
     const mediaType = formData.get('mediaType') as string | null;
->>>>>>> Stashed changes
 
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-<<<<<<< Updated upstream
-    // Get user's Twitter tokens from Firestore
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    const userData = userDoc.data();
-=======
     // Check if we have all required Twitter credentials
     if (!oauth.consumer_key || !oauth.consumer_secret || !oauth.token || !oauth.token_secret) {
       console.error('Missing Twitter API credentials:', {
@@ -110,6 +99,14 @@ export async function POST(req: Request) {
         hasTokenSecret: !!oauth.token_secret
       });
       throw new Error('Missing Twitter API credentials');
+    }
+
+    // Get user's Twitter tokens from Firestore
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const userData = userDoc.data();
+    
+    if (!userData?.twitterAccount?.accessToken) {
+      return NextResponse.json({ success: false, error: 'Twitter not connected' }, { status: 400 });
     }
 
     // Handle media upload if present
@@ -291,28 +288,31 @@ export async function POST(req: Request) {
 
     // Switch to v2 API for tweet creation
     const tweetUrl = 'https://api.twitter.com/2/tweets';
->>>>>>> Stashed changes
     
-    if (!userData?.twitterAccount?.accessToken) {
-      return NextResponse.json({ success: false, error: 'Twitter not connected' }, { status: 400 });
+    // Prepare tweet payload
+    const tweetPayload: any = { text };
+    
+    // Add media if we have it
+    if (mediaId) {
+      tweetPayload.media = {
+        media_ids: [mediaId]
+      };
     }
-
-    // Post tweet using OAuth 2.0
-    const tweetResponse = await fetch('https://api.twitter.com/2/tweets', {
+    
+    // Generate OAuth header for tweet creation
+    const tweetAuthHeader = generateOAuth1Header('POST', tweetUrl, {});
+    
+    // Post tweet using OAuth 1.0a
+    const tweetResponse = await fetch(tweetUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${userData.twitterAccount.accessToken}`,
-        'Content-Type': 'application/json',
+        'Authorization': tweetAuthHeader,
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ text })
+      body: JSON.stringify(tweetPayload)
     });
 
     if (!tweetResponse.ok) {
-<<<<<<< Updated upstream
-      const error = await tweetResponse.json();
-      console.error('Tweet error:', error);
-      return NextResponse.json({ success: false, error: 'Failed to post tweet' }, { status: 500 });
-=======
       const errorData = await tweetResponse.text();
       console.error('Twitter API error response:', errorData);
       
@@ -337,7 +337,6 @@ export async function POST(req: Request) {
       } else {
         throw new Error(`Failed to post tweet: ${errorData}`);
       }
->>>>>>> Stashed changes
     }
 
     const tweet = await tweetResponse.json();
@@ -345,9 +344,9 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Error posting tweet:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Internal server error' 
+    }, { status: 500 });
   }
 }
-
-// Delete all of this code below - it's causing the errors
-// and is not needed since this logic is already in the generateOAuth1Header function
